@@ -15,6 +15,7 @@ import { CvPreview } from "@/components/cv-preview"
 import { ArrowLeft, ArrowRight, Download, Save } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getSupabaseClient } from "@/lib/supabase/client"
+import { exportCvAsPdf } from "@/lib/pdf/export-cv"
 
 export default function CVBuilder() {
   const { toast } = useToast()
@@ -25,6 +26,7 @@ export default function CVBuilder() {
   const [activeTab, setActiveTab] = useState("personal")
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [title, setTitle] = useState("My CV")
   const [cvData, setCvData] = useState({
     personal: {
@@ -167,12 +169,30 @@ export default function CVBuilder() {
     }
   }
 
-  const handleExport = () => {
-    // In a real app, this would generate a PDF
-    toast({
-      title: "Export Started",
-      description: "Your CV is being exported to PDF.",
-    })
+  const handleExport = async () => {
+    setIsExporting(true)
+
+    try {
+      // Generate a filename based on the CV title and user's name
+      const userName = cvData.personal.name ? cvData.personal.name.replace(/\s+/g, "_").toLowerCase() : "user"
+      const fileName = `${title.replace(/\s+/g, "_").toLowerCase()}_${userName}.pdf`
+
+      await exportCvAsPdf(cvData, [], fileName)
+
+      toast({
+        title: "Export Successful",
+        description: "Your CV has been exported as a PDF.",
+      })
+    } catch (error) {
+      console.error("Error exporting CV:", error)
+      toast({
+        title: "Export Failed",
+        description: "Could not export your CV. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const nextTab = () => {
@@ -219,8 +239,8 @@ export default function CVBuilder() {
           <Button variant="outline" onClick={handleSave} disabled={isSaving} className="gap-2">
             <Save size={16} /> {isSaving ? "Saving..." : "Save"}
           </Button>
-          <Button variant="outline" onClick={handleExport} className="gap-2">
-            <Download size={16} /> Export PDF
+          <Button variant="outline" onClick={handleExport} disabled={isExporting} className="gap-2">
+            <Download size={16} /> {isExporting ? "Exporting..." : "Export PDF"}
           </Button>
           <Link href="/tailor">
             <Button>Tailor for Job</Button>

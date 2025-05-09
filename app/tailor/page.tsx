@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import { tailorCVWithAI } from "@/lib/ai/tailor-cv"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { exportCvAsPdf } from "@/lib/pdf/export-cv"
 
 export default function TailorCV() {
   const { toast } = useToast()
@@ -27,8 +28,10 @@ export default function TailorCV() {
   const [tailoredCV, setTailoredCV] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isTailoring, setIsTailoring] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [originalCV, setOriginalCV] = useState(null)
   const [suggestions, setSuggestions] = useState<string[]>([])
+  const [highlightedSkills, setHighlightedSkills] = useState<string[]>([])
 
   const supabase = getSupabaseClient()
 
@@ -176,6 +179,7 @@ export default function TailorCV() {
       // Update state with the tailored CV and suggestions
       setTailoredCV(result.tailoredCV)
       setSuggestions(result.suggestedImprovements)
+      setHighlightedSkills(result.highlightedSkills || [])
 
       // Save the tailored CV to Supabase
       const { error } = await supabase.from("tailored_cvs").insert({
@@ -205,11 +209,37 @@ export default function TailorCV() {
     }
   }
 
-  const handleExport = () => {
-    toast({
-      title: "Export Started",
-      description: "Your tailored CV is being exported to PDF.",
-    })
+  const handleExport = async () => {
+    setIsExporting(true)
+
+    try {
+      // Generate a filename based on the CV title and job details
+      const userName = (tailoredCV || originalCV).personal.name
+        ? (tailoredCV || originalCV).personal.name.replace(/\s+/g, "_").toLowerCase()
+        : "user"
+
+      const jobSuffix = jobTitle ? `_${jobTitle.replace(/\s+/g, "_").toLowerCase()}` : ""
+
+      const companySuffix = company ? `_${company.replace(/\s+/g, "_").toLowerCase()}` : ""
+
+      const fileName = `cv_${userName}${jobSuffix}${companySuffix}.pdf`
+
+      await exportCvAsPdf(tailoredCV || originalCV, highlightedSkills, fileName)
+
+      toast({
+        title: "Export Successful",
+        description: "Your CV has been exported as a PDF.",
+      })
+    } catch (error) {
+      console.error("Error exporting CV:", error)
+      toast({
+        title: "Export Failed",
+        description: "Could not export your CV. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   if (isLoading) {
@@ -247,8 +277,8 @@ export default function TailorCV() {
               <ArrowLeft size={16} /> Back to Dashboard
             </Button>
           </Link>
-          <Button variant="outline" onClick={handleExport} className="gap-2" disabled={!tailoredCV}>
-            <Download size={16} /> Export Tailored CV
+          <Button variant="outline" onClick={handleExport} disabled={isExporting} className="gap-2">
+            <Download size={16} /> {isExporting ? "Exporting..." : "Export PDF"}
           </Button>
         </div>
       </div>
@@ -301,7 +331,7 @@ export default function TailorCV() {
                 {tailoredCV ? "Tailored CV Preview" : "Original CV Preview"}
               </h2>
               <div className="h-[500px] overflow-auto border rounded-md p-4 bg-white">
-                <CvPreview data={tailoredCV || originalCV} highlightedSkills={tailoredCV?.highlightedSkills} />
+                <CvPreview data={tailoredCV || originalCV} highlightedSkills={highlightedSkills} />
               </div>
             </CardContent>
           </Card>
