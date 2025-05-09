@@ -1,6 +1,3 @@
-// This is a placeholder for the Gemini AI integration
-// You'll need to add your Gemini API key later
-
 interface TailorCVParams {
   cv: any
   jobDescription: string
@@ -8,27 +5,52 @@ interface TailorCVParams {
   company?: string
 }
 
-export async function tailorCVWithAI({ cv, jobDescription, jobTitle, company }: TailorCVParams) {
-  // This is a placeholder implementation
-  // In a real implementation, you would call the Gemini API here
+interface TailoringResult {
+  tailoredCV: any
+  highlightedSkills: string[]
+  suggestedImprovements: string[]
+}
 
-  // For now, we'll just do simple keyword matching
-  const tailored = JSON.parse(JSON.stringify(cv))
-  const jobDescLower = jobDescription.toLowerCase()
+export async function tailorCVWithAI({
+  cv,
+  jobDescription,
+  jobTitle,
+  company,
+}: TailorCVParams): Promise<TailoringResult> {
+  try {
+    // Call our API route
+    const response = await fetch("/api/tailor-cv", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cv,
+        jobDescription,
+        jobTitle,
+        company,
+      }),
+    })
 
-  // Extract potential keywords from the CV
-  const allSkills = [...(tailored.skills.technical || []), ...(tailored.skills.soft || [])]
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`)
+    }
 
-  // Find matching skills
-  const matchedKeywords = allSkills.filter((skill) => jobDescLower.includes(skill.toLowerCase()))
+    const result = await response.json()
+    return result
+  } catch (error) {
+    console.error("Error tailoring CV:", error)
 
-  // Mark matched skills as highlighted
-  tailored.highlightedSkills = matchedKeywords
+    // Fallback to simple keyword matching if the API call fails
+    const tailored = JSON.parse(JSON.stringify(cv))
+    const jobDescLower = jobDescription.toLowerCase()
+    const allSkills = [...(tailored.skills.technical || []), ...(tailored.skills.soft || [])]
+    const matchedKeywords = allSkills.filter((skill) => jobDescLower.includes(skill.toLowerCase()))
 
-  // Update the job title if provided
-  if (jobTitle) {
-    tailored.personal.title = jobTitle
+    return {
+      tailoredCV: tailored,
+      highlightedSkills: matchedKeywords,
+      suggestedImprovements: ["Unable to generate AI suggestions at this time."],
+    }
   }
-
-  return tailored
 }

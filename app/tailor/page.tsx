@@ -9,9 +9,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { CvPreview } from "@/components/cv-preview"
-import { ArrowLeft, Download, Wand2 } from "lucide-react"
+import { ArrowLeft, Download, Wand2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { getSupabaseClient } from "@/lib/supabase/client"
+import { tailorCVWithAI } from "@/lib/ai/tailor-cv"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function TailorCV() {
   const { toast } = useToast()
@@ -26,6 +28,7 @@ export default function TailorCV() {
   const [isLoading, setIsLoading] = useState(false)
   const [isTailoring, setIsTailoring] = useState(false)
   const [originalCV, setOriginalCV] = useState(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
 
   const supabase = getSupabaseClient()
 
@@ -162,28 +165,17 @@ export default function TailorCV() {
         return
       }
 
-      // In a real app with Gemini API, this would call the AI service
-      // For now, we'll simulate the tailoring process
+      // Call our AI tailoring function
+      const result = await tailorCVWithAI({
+        cv: originalCV,
+        jobDescription,
+        jobTitle,
+        company,
+      })
 
-      // Simple keyword matching (in a real app, this would use the Gemini API)
-      const tailored = JSON.parse(JSON.stringify(originalCV))
-      const jobDescLower = jobDescription.toLowerCase()
-
-      // Extract potential keywords from the CV
-      const allSkills = [...(tailored.skills.technical || []), ...(tailored.skills.soft || [])]
-
-      // Find matching skills
-      const matchedKeywords = allSkills.filter((skill) => jobDescLower.includes(skill.toLowerCase()))
-
-      // Mark matched skills as highlighted
-      tailored.highlightedSkills = matchedKeywords
-
-      // Update the job title if provided
-      if (jobTitle) {
-        tailored.personal.title = jobTitle
-      }
-
-      setTailoredCV(tailored)
+      // Update state with the tailored CV and suggestions
+      setTailoredCV(result.tailoredCV)
+      setSuggestions(result.suggestedImprovements)
 
       // Save the tailored CV to Supabase
       const { error } = await supabase.from("tailored_cvs").insert({
@@ -192,7 +184,7 @@ export default function TailorCV() {
         job_title: jobTitle,
         company: company,
         job_description: jobDescription,
-        tailored_data: tailored,
+        tailored_data: result.tailoredCV,
       })
 
       if (error) throw error
@@ -308,11 +300,34 @@ export default function TailorCV() {
               <h2 className="mb-4 text-xl font-semibold">
                 {tailoredCV ? "Tailored CV Preview" : "Original CV Preview"}
               </h2>
-              <div className="h-[600px] overflow-auto border rounded-md p-4 bg-white">
+              <div className="h-[500px] overflow-auto border rounded-md p-4 bg-white">
                 <CvPreview data={tailoredCV || originalCV} highlightedSkills={tailoredCV?.highlightedSkills} />
               </div>
             </CardContent>
           </Card>
+
+          {suggestions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">AI Suggestions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Improvement Suggestions</AlertTitle>
+                  <AlertDescription>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                      {suggestions.map((suggestion, index) => (
+                        <li key={index} className="text-sm">
+                          {suggestion}
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
