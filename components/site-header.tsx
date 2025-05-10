@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
-import { getSupabaseClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import {
   DropdownMenu,
@@ -13,11 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {createClient} from "@/supabase/client";
 
 export function SiteHeader() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = getSupabaseClient()
+  const supabase = createClient()
 
   useEffect(() => {
     async function getUser() {
@@ -30,7 +30,7 @@ export function SiteHeader() {
       // Listen for auth changes
       const {
         data: { subscription },
-      } = await supabase.auth.onAuthStateChange((_event, session) => {
+      } = supabase.auth.onAuthStateChange((_event, session) => {
         setUser(session?.user || null)
       })
 
@@ -39,8 +39,8 @@ export function SiteHeader() {
       }
     }
 
-    getUser()
-  }, [supabase])
+    getUser().then()
+  }, [])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()

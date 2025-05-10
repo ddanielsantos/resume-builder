@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Github } from "lucide-react"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import {createClient} from "@/supabase/client";
 
 export function LoginButton() {
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = getSupabaseClient()
+  const supabase = createClient()
 
   const handleLogin = async () => {
     try {

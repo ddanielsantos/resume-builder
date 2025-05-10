@@ -1,49 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Trash2 } from "lucide-react"
+import { z } from "zod"
+
+export const educationSchema = z.array(z.object({
+  degree: z.string().min(1, "Degree/Certificate is required"),
+  institution: z.string().min(1, "Institution is required"),
+  location: z.string().min(1, "Location is required"),
+  from: z.string().min(1, "From year is required"),
+  to: z.string().optional(),
+}));
+
+export type EducationList = z.infer<typeof educationSchema>;
 
 export function EducationForm({ data, updateData }) {
-  const [educationList, setEducationList] = useState(data || [])
 
-  useEffect(() => {
-    setEducationList(data || [])
-  }, [data])
-
-  const addEducation = () => {
-    setEducationList([
-      ...educationList,
-      {
-        degree: "",
-        institution: "",
-        location: "",
-        from: "",
-        to: "",
-      },
-    ])
-  }
-
-  const removeEducation = (index) => {
-    const newList = [...educationList]
-    newList.splice(index, 1)
-    setEducationList(newList)
-    updateData(newList)
-  }
-
-  const handleChange = (index, field, value) => {
-    const newList = [...educationList]
-    newList[index][field] = value
-    setEducationList(newList)
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    updateData(educationList)
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

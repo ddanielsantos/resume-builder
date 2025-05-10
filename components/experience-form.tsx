@@ -1,51 +1,25 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Trash2 } from "lucide-react"
+import { z } from "zod"
+
+export const experienceSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  company: z.string().min(1, "Company is required"),
+  location: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  description: z.string().optional(),
+});
+
+export type Experience = z.infer<typeof experienceSchema>;
 
 export function ExperienceForm({ data, updateData }) {
-  const [experienceList, setExperienceList] = useState(data || [])
-
-  useEffect(() => {
-    setExperienceList(data || [])
-  }, [data])
-
-  const addExperience = () => {
-    setExperienceList([
-      ...experienceList,
-      {
-        title: "",
-        company: "",
-        location: "",
-        from: "",
-        to: "",
-        description: "",
-      },
-    ])
-  }
-
-  const removeExperience = (index) => {
-    const newList = [...experienceList]
-    newList.splice(index, 1)
-    setExperienceList(newList)
-    updateData(newList)
-  }
-
-  const handleChange = (index, field, value) => {
-    const newList = [...experienceList]
-    newList[index][field] = value
-    setExperienceList(newList)
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    updateData(experienceList)
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

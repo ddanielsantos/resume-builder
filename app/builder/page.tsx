@@ -1,21 +1,31 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import {useState, useEffect} from "react"
+import {useRouter, useSearchParams} from "next/navigation"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { PersonalInfoForm } from "@/components/personal-info-form"
-import { EducationForm } from "@/components/education-form"
-import { ExperienceForm } from "@/components/experience-form"
-import { SkillsForm } from "@/components/skills-form"
-import { ProjectsForm } from "@/components/projects-form"
-import { CvPreview } from "@/components/cv-preview"
-import { ArrowLeft, ArrowRight, Download, Save } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { getSupabaseClient } from "@/lib/supabase/client"
-import { exportCvAsPdf } from "@/lib/pdf/export-cv"
+import {Button} from "@/components/ui/button"
+import {Card, CardContent} from "@/components/ui/card"
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
+import {type PersonalInfo, PersonalInfoForm} from "@/components/personal-info-form"
+import {EducationForm, type EducationList} from "@/components/education-form"
+import {type Experience, ExperienceForm} from "@/components/experience-form"
+import {type Skills, SkillsForm} from "@/components/skills-form"
+import {ProjectsForm, type ProjectList} from "@/components/projects-form"
+import {CvPreview} from "@/components/cv-preview"
+import {ArrowLeft, ArrowRight, Download, Save} from "lucide-react"
+import {useToast} from "@/hooks/use-toast"
+import {exportCvAsPdf} from "@/lib/pdf/export-cv"
+import {createClient} from "@/supabase/client";
+
+type CvData = {
+  personal: PersonalInfo,
+  projects: ProjectList,
+  education: EducationList,
+  experience: Experience,
+  skills: Skills,
+}
+
+type CvDataKeys = keyof CvData
 
 export default function CVBuilder() {
   const { toast } = useToast()
@@ -27,47 +37,9 @@ export default function CVBuilder() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
-  const [title, setTitle] = useState("My CV")
-  const [cvData, setCvData] = useState({
-    personal: {
-      name: "",
-      title: "",
-      email: "",
-      phone: "",
-      location: "",
-      website: "",
-      github: "",
-      linkedin: "",
-      summary: "",
-    },
-    education: [],
-    experience: [],
-    skills: {
-      technical: [],
-      soft: [],
-      languages: [],
-    },
-    projects: [],
-  })
+  const [cvData, setCvData] = useState<CvData | null>(null)
 
-  const supabase = getSupabaseClient()
-
-  useEffect(() => {
-    async function checkAuth() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to create or edit CVs",
-        })
-        router.push("/login")
-      }
-    }
-
-    checkAuth()
-  }, [supabase, router, toast])
+  const supabase = createClient()
 
   useEffect(() => {
     async function loadCV() {
@@ -78,7 +50,15 @@ export default function CVBuilder() {
       try {
         const { data, error } = await supabase.from("cvs").select("*").eq("id", cvId).single()
 
-        if (error) throw error
+        if (error) {
+            console.error("Error loading CV:", error)
+            toast({
+                title: "Error loading CV",
+                description: "Could not load the requested CV",
+                variant: "destructive",
+            })
+            return
+        }
 
         if (data) {
           setTitle(data.title)
@@ -96,10 +76,32 @@ export default function CVBuilder() {
       }
     }
 
-    loadCV()
+    loadCV().then()
   }, [cvId, supabase, toast])
 
-  const updateCvData = (section, data) => {
+  type CvData = {
+    personal: {
+      name: string
+      title: string
+      email: string
+      phone: string
+      location: string
+      website: string
+      github: string
+      linkedin: string
+      summary: string
+    }
+    education: any[]
+    experience: any[]
+    skills: {
+      technical: string[]
+      soft: string[]
+      languages: string[]
+    }
+    projects: any[]
+  }
+
+  const updateCvData = (section: CvDataKeys, data: CvData[typeof section]) => {
     setCvData((prev) => ({
       ...prev,
       [section]: data,
@@ -125,27 +127,44 @@ export default function CVBuilder() {
 
     try {
       if (cvId) {
-        // Update existing CV
-        const { error } = await supabase
-          .from("cvs")
-          .update({
-            title,
-            data: cvData,
-            updated_at: new Date().toISOString(),
+        // Update the existing CV
+        const {error} = await supabase
+            .from("cvs")
+            .update({
+              title,
+              data: cvData,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", cvId)
+
+        if (error) {
+          console.error("Error updating CV:", error)
+          toast({
+            title: "Error updating CV",
+            description: "Could not update your CV. Please try again.",
+            variant: "destructive",
           })
-          .eq("id", cvId)
+          return
+        }
 
-        if (error) throw error
-      } else {
-        // Create new CV
-        const { error } = await supabase.from("cvs").insert({
-          user_id: session.user.id,
-          title,
-          data: cvData,
-          is_default: false,
+        return
+      }
+      // Create a new CV
+      const {error} = await supabase.from("cvs").insert({
+        user_id: session.user.id,
+        title,
+        data: cvData,
+        is_default: false,
+      })
+
+      if (error) {
+        console.error("Error creating CV:", error)
+        toast({
+          title: "Error creating CV",
+          description: "Could not create your CV. Please try again.",
+          variant: "destructive",
         })
-
-        if (error) throw error
+        return
       }
 
       toast({
@@ -153,7 +172,7 @@ export default function CVBuilder() {
         description: "Your CV has been saved successfully.",
       })
 
-      // Redirect to dashboard after creating a new CV
+      // Redirect to the dashboard after creating a new CV
       if (!cvId) {
         router.push("/dashboard")
       }

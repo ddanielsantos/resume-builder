@@ -1,65 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { X } from "lucide-react"
+import { z } from "zod"
+
+export const skillsSchema = z.object({
+  technical: z.array(z.string()).optional(),
+  soft: z.array(z.string()).optional(),
+  languages: z.array(z.string()).optional(),
+});
+
+export type Skills = z.infer<typeof skillsSchema>
 
 export function SkillsForm({ data, updateData }) {
-  const [skills, setSkills] = useState(
-    data || {
-      technical: [],
-      soft: [],
-      languages: [],
-    },
-  )
-  const [newTechnical, setNewTechnical] = useState("")
-  const [newSoft, setNewSoft] = useState("")
-  const [newLanguage, setNewLanguage] = useState("")
 
-  useEffect(() => {
-    setSkills(
-      data || {
-        technical: [],
-        soft: [],
-        languages: [],
-      },
-    )
-  }, [data])
-
-  const addSkill = (type, value) => {
-    if (!value.trim()) return
-
-    const newSkills = { ...skills }
-    newSkills[type] = [...newSkills[type], value.trim()]
-
-    setSkills(newSkills)
-
-    // Reset input field
-    if (type === "technical") setNewTechnical("")
-    else if (type === "soft") setNewSoft("")
-    else if (type === "languages") setNewLanguage("")
-  }
-
-  const removeSkill = (type, index) => {
-    const newSkills = { ...skills }
-    newSkills[type] = newSkills[type].filter((_, i) => i !== index)
-    setSkills(newSkills)
-  }
-
-  const handleKeyDown = (e, type, value) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      addSkill(type, value)
-    }
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    updateData(skills)
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">

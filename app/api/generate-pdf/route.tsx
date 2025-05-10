@@ -1,13 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { renderToBuffer } from "@react-pdf/renderer"
 import { CvPdfDocument } from "@/components/pdf/cv-pdf-document"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import {createClient} from "@/supabase/client";
 
 export async function POST(request: NextRequest) {
   try {
     // Get the current user session
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createClient();
     const {
       data: { session },
     } = await supabase.auth.getSession()

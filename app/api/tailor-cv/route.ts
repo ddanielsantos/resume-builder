@@ -1,18 +1,31 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { OpenAI } from "openai"
+import {createClient} from "@/supabase/server";
+import { zodTextFormat } from "openai/helpers/zod";
+import { z } from "zod";
 
-// Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  apiKey: process.env.AI_KEY,
+  baseURL: process.env.AI_BASE_URL,
+})
+
+const cvSchema = z.object({
+  cv: z.object({}),
+  jobDescription: z.string(),
+  jobTitle: z.string().optional(),
+  company: z.string().optional(),
+});
+
+const tailoredCVSchema = z.object({
+  highlightedSkills: z.array(z.string()),
+  suggestedImprovements: z.array(z.string()),
+  tailoredCV: cvSchema,
 })
 
 export async function POST(request: Request) {
   try {
     // Get the current user session
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = await createClient();
     const {
       data: { session },
     } = await supabase.auth.getSession()
@@ -22,13 +35,21 @@ export async function POST(request: Request) {
     }
 
     // Parse the request body
-    const { cv, jobDescription, jobTitle, company } = await request.json()
+    const { data, error } = cvSchema.safeParse(await request.json())
+
+    if (error) {
+      console.error("Validation error:", error)
+      return NextResponse.json({ error: "Invalid input data" }, { status: 400 })
+    }
+
+    const { jobDescription, jobTitle, company, cv } = data!;
+
 
     if (!cv || !jobDescription) {
       return NextResponse.json({ error: "Missing required fields: cv and jobDescription" }, { status: 400 })
     }
 
-    // Create a prompt for OpenAI
+    // Create a prompt
     const prompt = `
     You are a professional CV tailoring assistant. Your task is to analyze a CV and a job description, 
     and identify which skills and experiences in the CV are most relevant to the job.
@@ -61,7 +82,7 @@ export async function POST(request: Request) {
 
     // Call OpenAI API
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: process.env.AI_MODEL!,
       messages: [
         {
           role: "system",
@@ -73,7 +94,11 @@ export async function POST(request: Request) {
         },
       ],
       temperature: 0.7,
-      max_tokens: 2000,
+      max_completion_tokens: 2000,
+      response_format: {
+        type: "json_schema",
+        json_schema: zodTextFormat(tailoredCVSchema, "tailoredCV"),
+      }
     })
 
     // Parse the response
@@ -82,7 +107,7 @@ export async function POST(request: Request) {
 
     try {
       // Try to parse the JSON response
-      tailoringResult = JSON.parse(responseContent)
+      tailoringResult = JSON.parse(responseContent || "{}")
     } catch (error) {
       console.error("Failed to parse OpenAI response:", error)
 

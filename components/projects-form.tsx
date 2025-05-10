@@ -1,48 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Plus, Trash2 } from "lucide-react"
+import { z } from "zod"
+
+export const projectsSchema = z.array(z.object({
+    name: z.string().min(1, "Project name is required"),
+    description: z.string().min(1, "Description is required"),
+    link: z.string().url("Invalid URL format").optional(),
+}));
+
+export type ProjectList = z.infer<typeof projectsSchema>;
+
 
 export function ProjectsForm({ data, updateData }) {
-  const [projectsList, setProjectsList] = useState(data || [])
 
-  useEffect(() => {
-    setProjectsList(data || [])
-  }, [data])
-
-  const addProject = () => {
-    setProjectsList([
-      ...projectsList,
-      {
-        name: "",
-        description: "",
-        link: "",
-      },
-    ])
-  }
-
-  const removeProject = (index) => {
-    const newList = [...projectsList]
-    newList.splice(index, 1)
-    setProjectsList(newList)
-    updateData(newList)
-  }
-
-  const handleChange = (index, field, value) => {
-    const newList = [...projectsList]
-    newList[index][field] = value
-    setProjectsList(newList)
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    updateData(projectsList)
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

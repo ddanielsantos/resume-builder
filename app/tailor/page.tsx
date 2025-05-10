@@ -11,10 +11,12 @@ import { Input } from "@/components/ui/input"
 import { CvPreview } from "@/components/cv-preview"
 import { ArrowLeft, Download, Wand2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { getSupabaseClient } from "@/lib/supabase/client"
 import { tailorCVWithAI } from "@/lib/ai/tailor-cv"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { exportCvAsPdf } from "@/lib/pdf/export-cv"
+import {createClient} from "@/supabase/client";
+import { Json } from "@/supabase/types/supabase";
+import {useForm} from "react-hook-form";
 
 export default function TailorCV() {
   const { toast } = useToast()
@@ -22,125 +24,23 @@ export default function TailorCV() {
   const searchParams = useSearchParams()
   const cvId = searchParams.get("id")
 
-  const [jobDescription, setJobDescription] = useState("")
-  const [jobTitle, setJobTitle] = useState("")
-  const [company, setCompany] = useState("")
   const [tailoredCV, setTailoredCV] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isTailoring, setIsTailoring] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
-  const [originalCV, setOriginalCV] = useState(null)
+  const [originalCV, setOriginalCV] = useState<Json>(null)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [highlightedSkills, setHighlightedSkills] = useState<string[]>([])
 
-  const supabase = getSupabaseClient()
+  const { register, handleSubmit } = useForm({
+    defaultValues: {
+      jobTitle: "",
+      company: "",
+      jobDescription: "",
+    },
+  })
 
-  useEffect(() => {
-    async function checkAuth() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        toast({
-          title: "Authentication required",
-          description: "Please log in to tailor your CV",
-        })
-        router.push("/login")
-      }
-    }
-
-    checkAuth()
-  }, [supabase, router, toast])
-
-  useEffect(() => {
-    async function loadCV() {
-      if (!cvId) {
-        // If no CV ID is provided, load the default CV or redirect to dashboard
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-        if (!session) return
-
-        setIsLoading(true)
-
-        try {
-          // Try to get the default CV
-          const { data, error } = await supabase
-            .from("cvs")
-            .select("*")
-            .eq("user_id", session.user.id)
-            .eq("is_default", true)
-            .single()
-
-          if (error && error.code !== "PGRST116") {
-            // PGRST116 is the error code for no rows returned
-            throw error
-          }
-
-          if (data) {
-            setOriginalCV(data.data)
-          } else {
-            // If no default CV, get the most recently updated CV
-            const { data: recentCv, error: recentError } = await supabase
-              .from("cvs")
-              .select("*")
-              .eq("user_id", session.user.id)
-              .order("updated_at", { ascending: false })
-              .limit(1)
-              .single()
-
-            if (recentError && recentError.code !== "PGRST116") {
-              throw recentError
-            }
-
-            if (recentCv) {
-              setOriginalCV(recentCv.data)
-            } else {
-              // No CVs found, redirect to builder
-              toast({
-                title: "No CVs found",
-                description: "Please create a CV first",
-              })
-              router.push("/builder")
-            }
-          }
-        } catch (error) {
-          console.error("Error loading CV:", error)
-          toast({
-            title: "Error loading CV",
-            description: "Could not load your CV",
-            variant: "destructive",
-          })
-        } finally {
-          setIsLoading(false)
-        }
-      } else {
-        // Load the specified CV
-        setIsLoading(true)
-
-        try {
-          const { data, error } = await supabase.from("cvs").select("*").eq("id", cvId).single()
-
-          if (error) throw error
-
-          if (data) {
-            setOriginalCV(data.data)
-          }
-        } catch (error) {
-          console.error("Error loading CV:", error)
-          toast({
-            title: "Error loading CV",
-            description: "Could not load the requested CV",
-            variant: "destructive",
-          })
-        } finally {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    loadCV()
-  }, [cvId, supabase, router, toast])
+  const supabase = createClient();
 
   const handleTailor = async () => {
     if (!jobDescription) {
@@ -183,7 +83,7 @@ export default function TailorCV() {
 
       // Save the tailored CV to Supabase
       const { error } = await supabase.from("tailored_cvs").insert({
-        cv_id: cvId || null, // This might be null if using default CV
+        cv_id: cvId, // This might be null if using default CV
         user_id: session.user.id,
         job_title: jobTitle,
         company: company,
@@ -191,7 +91,14 @@ export default function TailorCV() {
         tailored_data: result.tailoredCV,
       })
 
-      if (error) throw error
+      if (error) {
+        console.error("Error saving tailored CV:", error)
+        toast({
+          title: "Error saving CV",
+          description: "Could not save your tailored CV. Please try again.",
+          variant: "destructive",
+        })
+      }
 
       toast({
         title: "CV Tailored",

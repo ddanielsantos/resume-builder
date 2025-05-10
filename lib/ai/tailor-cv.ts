@@ -1,12 +1,14 @@
+import {Json} from "@/supabase/types/supabase";
+
 interface TailorCVParams {
-  cv: any
+  cv: Json
   jobDescription: string
   jobTitle?: string
   company?: string
 }
 
 interface TailoringResult {
-  tailoredCV: any
+  tailoredCV: Json
   highlightedSkills: string[]
   suggestedImprovements: string[]
 }
@@ -36,8 +38,7 @@ export async function tailorCVWithAI({
       throw new Error(`API request failed with status ${response.status}`)
     }
 
-    const result = await response.json()
-    return result
+    return await response.json()
   } catch (error) {
     console.error("Error tailoring CV:", error)
 

@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { getSupabaseServer } from "@/lib/supabase/server"
 import { UserCvList } from "@/components/dashboard/user-cv-list"
+import {createClient} from "@/supabase/server";
 
 export default async function DashboardPage() {
-  const supabase = getSupabaseServer()
+  const supabase = await createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession()

@@ -1,11 +1,11 @@
-import { getSupabaseServer } from "@/lib/supabase/server"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileEdit, Eye, Trash2 } from "lucide-react"
+import { createClient } from "@/supabase/server";
 
 export async function UserCvList({ userId }: { userId: string }) {
-  const supabase = getSupabaseServer()
+  const supabase = await createClient();
 
   const { data: cvs, error } = await supabase
     .from("cvs")
@@ -36,9 +36,9 @@ export async function UserCvList({ userId }: { userId: string }) {
         <Card key={cv.id}>
           <CardHeader>
             <CardTitle>{cv.title}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Last updated: {new Date(cv.updated_at).toLocaleDateString()}
-            </p>
+              {cv.updated_at && <p className="text-sm text-muted-foreground">
+                  Last updated: {new Date(cv.updated_at).toLocaleDateString()}
+              </p>}
           </CardHeader>
           <CardContent>
             <p className="text-sm">

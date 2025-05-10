@@ -1,30 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { z } from "zod"
+
+export type PersonalInfo = z.infer<typeof personalInfoSchema>
+
+export const personalInfoSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    title: z.string().min(1, "Title is required"),
+    email: z.string().email("Invalid email address"),
+    phone: z.string().optional(),
+    location: z.string().optional(),
+    website: z.string().url("Invalid URL").optional(),
+    github: z.string().url("Invalid URL").optional(),
+    linkedin: z.string().url("Invalid URL").optional(),
+    summary: z.string().optional(),
+})
 
 export function PersonalInfoForm({ data, updateData }) {
-  const [formData, setFormData] = useState(data)
 
-  useEffect(() => {
-    setFormData(data)
-  }, [data])
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    updateData(formData)
-  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
