@@ -17,7 +17,12 @@ export const educationSchema = z.array(z.object({
 
 export type EducationList = z.infer<typeof educationSchema>;
 
-export function EducationForm({ data, updateData }) {
+type Props = {
+    data: EducationList
+    updateData: (data: EducationList) => void
+}
+
+export function EducationForm({ data, updateData }: Props) {
 
 
   return (

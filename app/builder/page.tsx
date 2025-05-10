@@ -8,7 +8,7 @@ import {Card, CardContent} from "@/components/ui/card"
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {type PersonalInfo, PersonalInfoForm} from "@/components/personal-info-form"
 import {EducationForm, type EducationList} from "@/components/education-form"
-import {type Experience, ExperienceForm} from "@/components/experience-form"
+import {type ExperienceList, ExperienceForm} from "@/components/experience-form"
 import {type Skills, SkillsForm} from "@/components/skills-form"
 import {ProjectsForm, type ProjectList} from "@/components/projects-form"
 import {CvPreview} from "@/components/cv-preview"
@@ -21,11 +21,32 @@ type CvData = {
   personal: PersonalInfo,
   projects: ProjectList,
   education: EducationList,
-  experience: Experience,
+  experience: ExperienceList,
   skills: Skills,
 }
 
 type CvDataKeys = keyof CvData
+
+const initialCvData: CvData = {
+  personal: {
+    title: "",
+    name: "",
+    email: "",
+    phone: "",
+    summary: "",
+    website: "",
+    github: "",
+    linkedin: "",
+  },
+  projects: [],
+  education: [],
+  experience: [],
+  skills: {
+    languages: [],
+    technical: [],
+    soft: [],
+  },
+}
 
 export default function CVBuilder() {
   const { toast } = useToast()
@@ -37,7 +58,8 @@ export default function CVBuilder() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
-  const [cvData, setCvData] = useState<CvData | null>(null)
+  const [cvData, setCvData] = useState<CvData>(initialCvData)
+  const [title, setTitle] = useState(initialCvData.personal.title)
 
   const supabase = createClient()
 
@@ -78,28 +100,6 @@ export default function CVBuilder() {
 
     loadCV().then()
   }, [cvId, supabase, toast])
-
-  type CvData = {
-    personal: {
-      name: string
-      title: string
-      email: string
-      phone: string
-      location: string
-      website: string
-      github: string
-      linkedin: string
-      summary: string
-    }
-    education: any[]
-    experience: any[]
-    skills: {
-      technical: string[]
-      soft: string[]
-      languages: string[]
-    }
-    projects: any[]
-  }
 
   const updateCvData = (section: CvDataKeys, data: CvData[typeof section]) => {
     setCvData((prev) => ({

@@ -1,10 +1,12 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { z } from "zod"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Textarea} from "@/components/ui/textarea"
+import {z} from "zod"
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import {useForm} from "react-hook-form";
+import {zodResolver} from "@hookform/resolvers/zod";
 
 export type PersonalInfo = z.infer<typeof personalInfoSchema>
 
@@ -20,105 +22,155 @@ export const personalInfoSchema = z.object({
     summary: z.string().optional(),
 })
 
-export function PersonalInfoForm({ data, updateData }) {
+type Props = {
+    data: PersonalInfo
+    updateData: (data: PersonalInfo) => void
+}
 
+export function PersonalInfoForm({data, updateData}: Props) {
+    const form = useForm<PersonalInfo>({
+        resolver: zodResolver(personalInfoSchema),
+        defaultValues: data,
+    });
+    const onSubmit = (data: PersonalInfo) => {
+        updateData(data);
+    }
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="name">Full Name</Label>
-          <Input id="name" name="name" value={formData.name} onChange={handleChange} placeholder="John Doe" />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="title">Professional Title</Label>
-          <Input
-            id="title"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            placeholder="Senior Software Engineer"
-          />
-        </div>
-      </div>
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({field}) => (
+                            <FormItem>
+                                <FormLabel>Full name</FormLabel>
+                                <FormControl><Input placeholder="John Doe" {...field}/></FormControl>
+                                <FormMessage/>
+                            </FormItem>
+                        )}/>
+                    <div className="space-y-2">
+                        <FormField
+                            control={form.control}
+                            name="title"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Professional title</FormLabel>
+                                    <FormControl><Input
+                                        placeholder="Senior Software Engineer" {...field}/></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}/>
+                    </div>
+                </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="john.doe@example.com"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} placeholder="(123) 456-7890" />
-        </div>
-      </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl><Input
+                                        placeholder="john.doe@example.com" {...field}/></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}/>
+                    </div>
+                    <div className="space-y-2">
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Phone</FormLabel>
+                                    <FormControl><Input
+                                        placeholder="(123) 456-7890" {...field}/></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}/>
+                    </div>
+                </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="location">Location</Label>
-          <Input
-            id="location"
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            placeholder="San Francisco, CA"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="website">Website</Label>
-          <Input
-            id="website"
-            name="website"
-            value={formData.website}
-            onChange={handleChange}
-            placeholder="johndoe.dev"
-          />
-        </div>
-      </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <FormField
+                            control={form.control}
+                            name="location"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Location</FormLabel>
+                                    <FormControl><Input
+                                        placeholder="San Francisco, CA" {...field}/></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}/>
+                    </div>
+                    <div className="space-y-2">
+                        <FormField
+                            control={form.control}
+                            name="website"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Website</FormLabel>
+                                    <FormControl><Input
+                                        placeholder="johndoe.dev" {...field}/></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}/>
+                    </div>
+                </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="github">GitHub</Label>
-          <Input
-            id="github"
-            name="github"
-            value={formData.github}
-            onChange={handleChange}
-            placeholder="github.com/johndoe"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="linkedin">LinkedIn</Label>
-          <Input
-            id="linkedin"
-            name="linkedin"
-            value={formData.linkedin}
-            onChange={handleChange}
-            placeholder="linkedin.com/in/johndoe"
-          />
-        </div>
-      </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <FormField
+                            control={form.control}
+                            name="github"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Github</FormLabel>
+                                    <FormControl><Input
+                                        placeholder="github.com/johndoe" {...field}/></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}/>
+                    </div>
+                    <div className="space-y-2">
+                        <FormField
+                            control={form.control}
+                            name="linkedin"
+                            render={({field}) => (
+                                <FormItem>
+                                    <FormLabel>Linkedin</FormLabel>
+                                    <FormControl><Input
+                                        placeholder="linkedin.com/in/johndoe" {...field}/></FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}/>
+                    </div>
+                </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="summary">Professional Summary</Label>
-        <Textarea
-          id="summary"
-          name="summary"
-          value={formData.summary}
-          onChange={handleChange}
-          placeholder="A brief summary of your professional background and goals..."
-          className="min-h-[100px]"
-        />
-      </div>
+                <div className="space-y-2">
+                    <FormField
+                        control={form.control}
+                        name="summary"
+                        render={({field}) => (
+                            <FormItem>
+                                <FormLabel>Professional Summary</FormLabel>
+                                <FormControl><Textarea
+                                    {...field}
+                                    placeholder="A brief summary of your professional background and goals..."
+                                    className="min-h-[100px]"
+                                /></FormControl>
+                                <FormMessage/>
+                            </FormItem>
+                        )}/>
+                </div>
 
-      <Button type="submit">Save Personal Information</Button>
-    </form>
-  )
+                <Button type="submit">Save Personal Information</Button>
+            </form>
+        </Form>
+    )
 }

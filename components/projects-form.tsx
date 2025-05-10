@@ -16,8 +16,12 @@ export const projectsSchema = z.array(z.object({
 
 export type ProjectList = z.infer<typeof projectsSchema>;
 
+type Props = {
+    data: ProjectList
+    updateData: (data: ProjectList) => void
+}
 
-export function ProjectsForm({ data, updateData }) {
+export function ProjectsForm({ data, updateData }: Props) {
 
 
   return (
