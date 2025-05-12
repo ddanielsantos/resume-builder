@@ -1,8 +1,14 @@
 "use client"
 
+import { CvData } from "@/app/builder/page"
 import { Briefcase, GraduationCap, Mail, MapPin, Phone, Globe, Github, Linkedin, Code, Languages } from "lucide-react"
 
-export function CvPreview({ data, highlightedSkills = [] }) {
+type Props = {
+    data: CvData
+    highlightedSkills?: string[]
+}
+
+export function CvPreview({ data, highlightedSkills = [] }: Props) {
   if (!data || Object.keys(data).length === 0) {
     return (
       <div className="flex items-center justify-center h-full">

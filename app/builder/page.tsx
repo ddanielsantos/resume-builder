@@ -17,7 +17,7 @@ import {useToast} from "@/hooks/use-toast"
 import {exportCvAsPdf} from "@/lib/pdf/export-cv"
 import {createClient} from "@/supabase/client";
 
-type CvData = {
+export type CvData = {
   personal: PersonalInfo,
   projects: ProjectList,
   education: EducationList,

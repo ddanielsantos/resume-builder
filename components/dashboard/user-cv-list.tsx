@@ -14,7 +14,7 @@ export async function UserCvList({ userId }: { userId: string }) {
     .order("updated_at", { ascending: false })
 
   if (error) {
-    console.error("Error fetching CVs:", error)
+    console.error("Error fetching CVs:", JSON.stringify(error))
     return <div>Failed to load your CVs. Please try again later.</div>
   }
 

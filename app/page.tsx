@@ -5,19 +5,6 @@ import { ArrowRight } from "lucide-react"
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="font-semibold">DevCV Builder</div>
-          <nav className="flex gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost">Dashboard</Button>
-            </Link>
-            <Link href="/builder">
-              <Button>Create CV</Button>
-            </Link>
-          </nav>
-        </div>
-      </header>
       <main className="flex-1">
         <section className="container py-24 space-y-8 md:py-32">
           <div className="mx-auto max-w-3xl text-center space-y-4">

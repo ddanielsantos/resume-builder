@@ -1,130 +1,186 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
-import { Plus, Trash2 } from "lucide-react"
-import { z } from "zod"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Textarea} from "@/components/ui/textarea"
+import {Card, CardContent} from "@/components/ui/card"
+import {Plus, Trash2} from "lucide-react"
+import {z} from "zod"
+import {zodResolver} from "@hookform/resolvers/zod"
+import {useFieldArray, useForm} from "react-hook-form"
+import {Form, FormField, FormItem, FormLabel, FormControl, FormMessage} from "@/components/ui/form";
 
 export const experienceSchema = z.array(z.object({
-  title: z.string().min(1, "Title is required"),
-  company: z.string().min(1, "Company is required"),
-  location: z.string().optional(),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  description: z.string().optional(),
+    title: z.string().min(1, "Title is required"),
+    company: z.string().min(1, "Company is required"),
+    location: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    description: z.string().optional(),
 }));
 
 export type ExperienceList = z.infer<typeof experienceSchema>;
 
 type Props = {
-  data: ExperienceList
-  updateData: (data: ExperienceList) => void
+    data: ExperienceList
+    updateData: (data: ExperienceList) => void
 }
 
-export function ExperienceForm({ data, updateData }: Props) {
+export function ExperienceForm({data, updateData}: Props) {
+    const form = useForm<{ list: ExperienceList }>({
+        resolver: zodResolver(experienceSchema),
+        defaultValues: { list: data },
+    });
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {experienceList.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-muted-foreground mb-4">No experience entries yet</p>
-          <Button type="button" onClick={addExperience} className="gap-2">
-            <Plus size={16} /> Add Experience
-          </Button>
-        </div>
-      ) : (
-        <>
-          {experienceList.map((experience, index) => (
-            <Card key={index}>
-              <CardContent className="pt-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor={`title-${index}`}>Job Title</Label>
-                    <Input
-                      id={`title-${index}`}
-                      value={experience.title}
-                      onChange={(e) => handleChange(index, "title", e.target.value)}
-                      placeholder="Software Engineer"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`company-${index}`}>Company</Label>
-                    <Input
-                      id={`company-${index}`}
-                      value={experience.company}
-                      onChange={(e) => handleChange(index, "company", e.target.value)}
-                      placeholder="Tech Solutions Inc."
-                    />
-                  </div>
-                </div>
+    const {fields, append, remove} = useFieldArray({
+        control: form.control,
+        name: "list",
+    });
 
-                <div className="grid gap-4 md:grid-cols-3 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`location-${index}`}>Location</Label>
-                    <Input
-                      id={`location-${index}`}
-                      value={experience.location}
-                      onChange={(e) => handleChange(index, "location", e.target.value)}
-                      placeholder="San Francisco, CA"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`from-${index}`}>From</Label>
-                    <Input
-                      id={`from-${index}`}
-                      value={experience.from}
-                      onChange={(e) => handleChange(index, "from", e.target.value)}
-                      placeholder="Jan 2020"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`to-${index}`}>To</Label>
-                    <Input
-                      id={`to-${index}`}
-                      value={experience.to}
-                      onChange={(e) => handleChange(index, "to", e.target.value)}
-                      placeholder="Present"
-                    />
-                  </div>
-                </div>
+    const onSubmit = (data: ExperienceList) => {
+        updateData(data);
+    };
 
-                <div className="space-y-2 mt-4">
-                  <Label htmlFor={`description-${index}`}>Description</Label>
-                  <Textarea
-                    id={`description-${index}`}
-                    value={experience.description}
-                    onChange={(e) => handleChange(index, "description", e.target.value)}
-                    placeholder="Describe your responsibilities and achievements..."
-                    className="min-h-[100px]"
-                  />
-                </div>
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(({list}) => onSubmit(list))} className="space-y-6">
+                {fields.length === 0 ? (
+                    <div className="text-center py-8">
+                        <p className="text-muted-foreground mb-4">No experience entries yet</p>
+                        <Button type="button" onClick={() => append({
+                            title: "",
+                            company: "",
+                            location: "",
+                            from: "",
+                            to: "",
+                            description: ""
+                        })} className="gap-2">
+                            <Plus size={16}/> Add Experience
+                        </Button>
+                    </div>
+                ) : (
+                    <>
+                        {fields.map((field, index) => (
+                            <Card key={field.id}>
+                                <CardContent className="pt-6">
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <FormField
+                                            control={form.control}
+                                            name={`list.${index}.title`}
+                                            render={({field}) => (
+                                                <FormItem>
+                                                    <FormLabel>Job Title</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="Software Engineer"/>
+                                                    </FormControl>
+                                                    <FormMessage/>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={`list.${index}.company`}
+                                            render={({field}) => (
+                                                <FormItem>
+                                                    <FormLabel>Company</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="Tech Solutions Inc."/>
+                                                    </FormControl>
+                                                    <FormMessage/>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
-                <div className="mt-4 flex justify-end">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => removeExperience(index)}
-                    className="gap-2"
-                  >
-                    <Trash2 size={16} /> Remove
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                                    <div className="grid gap-4 md:grid-cols-3 mt-4">
+                                        <FormField
+                                            control={form.control}
+                                            name={`list.${index}.location`}
+                                            render={({field}) => (
+                                                <FormItem>
+                                                    <FormLabel>Location</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="San Francisco, CA"/>
+                                                    </FormControl>
+                                                    <FormMessage/>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={`list.${index}.from`}
+                                            render={({field}) => (
+                                                <FormItem>
+                                                    <FormLabel>From</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="Jan 2020"/>
+                                                    </FormControl>
+                                                    <FormMessage/>
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name={`list.${index}.to`}
+                                            render={({field}) => (
+                                                <FormItem>
+                                                    <FormLabel>To</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="Present"/>
+                                                    </FormControl>
+                                                    <FormMessage/>
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
-          <div className="flex justify-between">
-            <Button type="button" variant="outline" onClick={addExperience} className="gap-2">
-              <Plus size={16} /> Add Another Experience
-            </Button>
-            <Button type="submit">Save Experience</Button>
-          </div>
-        </>
-      )}
-    </form>
-  )
+                                    <FormField
+                                        control={form.control}
+                                        name={`list.${index}.description`}
+                                        render={({field}) => (
+                                            <FormItem className="mt-4">
+                                                <FormLabel>Description</FormLabel>
+                                                <FormControl>
+                                                    <Textarea {...field}
+                                                              placeholder="Describe your responsibilities and achievements..."
+                                                              className="min-h-[100px]"/>
+                                                </FormControl>
+                                                <FormMessage/>
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <div className="mt-4 flex justify-end">
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => remove(index)}
+                                            className="gap-2"
+                                        >
+                                            <Trash2 size={16}/> Remove
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+
+                        <div className="flex justify-between">
+                            <Button type="button" variant="outline" onClick={() => append({
+                                title: "",
+                                company: "",
+                                location: "",
+                                from: "",
+                                to: "",
+                                description: ""
+                            })} className="gap-2">
+                                <Plus size={16}/> Add Another Experience
+                            </Button>
+                            <Button type="submit">Save Experience</Button>
+                        </div>
+                    </>
+                )}
+            </form>
+        </Form>
+    );
 }
