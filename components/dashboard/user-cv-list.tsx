@@ -1,20 +1,20 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { FileEdit, Eye, Trash2 } from "lucide-react"
+import {FileEdit, Trash2, Sparkles} from "lucide-react"
 import { createClient } from "@/supabase/server";
 
 export async function UserCvList({ userId }: { userId: string }) {
   const supabase = await createClient();
 
-  const { data: cvs, error } = await supabase
+  const { data: cvs, error,  } = await supabase
     .from("cvs")
-    .select("*")
+    .select("updated_at, title, is_default, id")
     .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
+    .order("updated_at", { ascending: false });
 
   if (error) {
-    console.error("Error fetching CVs:", JSON.stringify(error))
+    console.error("Error fetching CVs:", error)
     return <div>Failed to load your CVs. Please try again later.</div>
   }
 
@@ -54,7 +54,7 @@ export async function UserCvList({ userId }: { userId: string }) {
             <div className="flex gap-2">
               <Link href={`/tailor?id=${cv.id}`}>
                 <Button variant="outline" size="sm" className="gap-1">
-                  <Eye size={14} /> Tailor
+                  <Sparkles size={14} /> Tailor
                 </Button>
               </Link>
               <Button variant="destructive" size="sm" className="gap-1">

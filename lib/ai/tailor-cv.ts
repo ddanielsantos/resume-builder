@@ -1,24 +1,7 @@
-import {Json} from "@/supabase/types/supabase";
+import {TailorCVRequest, TailorCVResponse, tailorCVResponseSchema} from "../cv"
 
-interface TailorCVParams {
-  cv: Json
-  jobDescription: string
-  jobTitle?: string
-  company?: string
-}
 
-interface TailoringResult {
-  tailoredCV: Json
-  highlightedSkills: string[]
-  suggestedImprovements: string[]
-}
-
-export async function tailorCVWithAI({
-  cv,
-  jobDescription,
-  jobTitle,
-  company,
-}: TailorCVParams): Promise<TailoringResult> {
+export async function tailorCVWithAI(params: TailorCVRequest): Promise<{ error?: string, data?: TailorCVResponse }> {
   try {
     // Call our API route
     const response = await fetch("/api/tailor-cv", {
@@ -26,32 +9,25 @@ export async function tailorCVWithAI({
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        cv,
-        jobDescription,
-        jobTitle,
-        company,
-      }),
+      body: JSON.stringify(params),
     })
 
     if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`)
+      console.log(`API request failed with status ${response.status}`)
+      const errorResponse = await response.json()
+      return { error: errorResponse.error || "An unknown error occurred" }
     }
 
-    return await response.json()
+    const json = await response.json()
+    // const { data, success, error } = tailorCVResponseSchema.safeParse(json)
+    // if (!success) {
+    //   console.error("Validation error:", error)
+    //   return { error: "Invalid response data" }
+    // }
+    return { data: json }
   } catch (error) {
     console.error("Error tailoring CV:", error)
-
-    // Fallback to simple keyword matching if the API call fails
-    const tailored = JSON.parse(JSON.stringify(cv))
-    const jobDescLower = jobDescription.toLowerCase()
-    const allSkills = [...(tailored.skills.technical || []), ...(tailored.skills.soft || [])]
-    const matchedKeywords = allSkills.filter((skill) => jobDescLower.includes(skill.toLowerCase()))
-
-    return {
-      tailoredCV: tailored,
-      highlightedSkills: matchedKeywords,
-      suggestedImprovements: ["Unable to generate AI suggestions at this time."],
-    }
+    // TODO: debug this later
+    return { error: "An error occurred while tailoring the CV." }
   }
 }

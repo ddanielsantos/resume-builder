@@ -1,61 +1,97 @@
-import { NextResponse } from "next/server"
-import { OpenAI } from "openai"
+import {NextResponse} from "next/server"
+import {OpenAI} from "openai"
 import {createClient} from "@/supabase/server";
-import { zodTextFormat } from "openai/helpers/zod";
-import { z } from "zod";
-
+import {tailorCvRequestSchema, tailorCVResponseSchema} from "@/lib/cv";
 const openai = new OpenAI({
-  apiKey: process.env.AI_KEY,
-  baseURL: process.env.AI_BASE_URL,
+    apiKey: process.env.AI_KEY,
+    baseURL: process.env.AI_BASE_URL,
 })
 
-const cvSchema = z.object({
-  cv: z.object({}),
-  jobDescription: z.string(),
-  jobTitle: z.string().optional(),
-  company: z.string().optional(),
-});
-
-const tailoredCVSchema = z.object({
-  highlightedSkills: z.array(z.string()),
-  suggestedImprovements: z.array(z.string()),
-  tailoredCV: cvSchema,
-})
+type WithError = {
+    error: string
+}
 
 export async function POST(request: Request) {
-  try {
-    // Get the current user session
-    const supabase = await createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    const extractJsonFromMarkdown = (markdown: string | null) => {
+        if (!markdown) {
+            console.error("No markdown content provided")
+            return null
+        }
+        console.log("Markdown content:", markdown)
+        const jsonString = markdown.replace(/```json/g, "").replace(/```/g, "").trim()
+        try {
+            const parsedJson = JSON.parse(jsonString)
+            console.log(parsedJson)
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized. Please sign in." }, { status: 401 })
+            const result = tailorCVResponseSchema.safeParse(parsedJson)
+            if (result.success) {
+                return result.data
+            } else {
+                console.error("Validation error:", result.error)
+                return null
+            }
+        } catch (error) {
+            console.error("Error parsing JSON:", error)
+            return null
+        }
     }
 
-    // Parse the request body
-    const { data, error } = cvSchema.safeParse(await request.json())
+    try {
+        // Get the current user session
+        const supabase = await createClient();
+        const {
+            data: {user},
+        } = await supabase.auth.getUser()
 
-    if (error) {
-      console.error("Validation error:", error)
-      return NextResponse.json({ error: "Invalid input data" }, { status: 400 })
-    }
+        if (!user) {
+            return NextResponse.json<WithError>({error: "Unauthorized. Please sign in."}, {status: 401})
+        }
 
-    const { jobDescription, jobTitle, company, cv } = data!;
+        // Parse the request body
+        const {data, error} = tailorCvRequestSchema.safeParse(await request.json())
 
+        if (error || !data) {
+            console.error("Validation error:", error)
+            return NextResponse.json<WithError>({error: "Invalid input data"}, {status: 400})
+        }
 
-    if (!cv || !jobDescription) {
-      return NextResponse.json({ error: "Missing required fields: cv and jobDescription" }, { status: 400 })
-    }
+        const {jobDescription, jobTitle, company, cvID} = data;
+        if (!cvID || !jobDescription) {
+            return NextResponse.json<WithError>({error: "Missing required fields: cv and jobDescription"}, {status: 400})
+        }
 
-    // Create a prompt
-    const prompt = `
+        const fetchCVPromise = async (cvID: string | null) => {
+            if (!cvID) {
+                return null
+            }
+
+            const {data, error} = await supabase
+                .from("cvs")
+                .select("data")
+                .eq("id", cvID)
+                .eq("user_id", user.id)
+                .single()
+
+            if (error) {
+                console.error("Error fetching CV:", error)
+                return null
+            }
+
+            return data
+        }
+        const cv = await fetchCVPromise(cvID)
+
+        if (!cv) {
+            return NextResponse.json<WithError>({error: "CV not found"}, {status: 404})
+        }
+
+        // Create a prompt
+        const prompt = `
     You are a professional CV tailoring assistant. Your task is to analyze a CV and a job description, 
     and identify which skills and experiences in the CV are most relevant to the job.
     
     CV DATA:
-    ${JSON.stringify(cv)}
+    ${JSON.stringify(cv.data)}
     
     JOB DESCRIPTION:
     ${jobDescription}
@@ -63,6 +99,7 @@ export async function POST(request: Request) {
     JOB TITLE: ${jobTitle || "Not specified"}
     COMPANY: ${company || "Not specified"}
     
+    Please do not respond with Markdown or any other formatting, only pure JSON.
     Please analyze the CV and job description, and return a JSON object with the following structure:
     {
       "tailoredCV": {
@@ -80,53 +117,29 @@ export async function POST(request: Request) {
     Do not invent new information, only work with what is provided in the CV.
     `
 
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: process.env.AI_MODEL!,
-      messages: [
-        {
-          role: "system",
-          content: "You are a professional CV tailoring assistant that helps match CVs to job descriptions.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      max_completion_tokens: 2000,
-      response_format: {
-        type: "json_schema",
-        json_schema: zodTextFormat(tailoredCVSchema, "tailoredCV"),
-      }
-    })
+        // Call OpenAI API
+        const completion = await openai.chat.completions.create({
+            model: process.env.AI_MODEL!,
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a professional CV tailoring assistant that helps match CVs to job descriptions.",
+                },
+                {
+                    role: "user",
+                    content: prompt,
+                },
+            ],
+            temperature: 0.7,
+            max_completion_tokens: 2000
+        })
 
-    // Parse the response
-    const responseContent = completion.choices[0].message.content
-    let tailoringResult
+        const responseContent = completion.choices[0].message.content
+        const parsedResponse = extractJsonFromMarkdown(responseContent || null)
 
-    try {
-      // Try to parse the JSON response
-      tailoringResult = JSON.parse(responseContent || "{}")
+        return NextResponse.json(parsedResponse)
     } catch (error) {
-      console.error("Failed to parse OpenAI response:", error)
-
-      // Fallback to simple keyword matching if parsing fails
-      const tailored = JSON.parse(JSON.stringify(cv))
-      const jobDescLower = jobDescription.toLowerCase()
-      const allSkills = [...(tailored.skills.technical || []), ...(tailored.skills.soft || [])]
-      const matchedKeywords = allSkills.filter((skill) => jobDescLower.includes(skill.toLowerCase()))
-
-      tailoringResult = {
-        tailoredCV: tailored,
-        highlightedSkills: matchedKeywords,
-        suggestedImprovements: ["Consider adding more specific details to your experience section."],
-      }
+        console.error("Error in tailor-cv API route:", error)
+        return NextResponse.json<WithError>({error: "Failed to tailor CV. Please try again."}, {status: 500})
     }
-
-    return NextResponse.json(tailoringResult)
-  } catch (error) {
-    console.error("Error in tailor-cv API route:", error)
-    return NextResponse.json({ error: "Failed to tailor CV. Please try again." }, { status: 500 })
-  }
 }
