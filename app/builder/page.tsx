@@ -9,7 +9,8 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs"
 import {PersonalInfoForm} from "@/components/personal-info-form"
 import {EducationForm} from "@/components/education-form"
 import {ExperienceForm} from "@/components/experience-form"
-import {SkillsForm} from "@/components/skills-form"
+import {SoftSkillsForm} from "@/components/skills-form"
+import {TechnicalSkillsForm} from "@/components/tech-form"
 import {ProjectsForm} from "@/components/projects-form"
 import {CvPreview} from "@/components/cv-preview"
 import {ArrowLeft, ArrowRight, Download, Save} from "lucide-react"
@@ -17,6 +18,7 @@ import {useToast} from "@/hooks/use-toast"
 import {exportCvAsPdf} from "@/lib/pdf/export-cv"
 import {createClient} from "@/supabase/client";
 import {CvData, CvDataKeys} from "@/lib/cv"
+import {LanguagesForm} from "@/components/language-form";
 
 const initialCvData: CvData = {
     personal: {
@@ -30,13 +32,11 @@ const initialCvData: CvData = {
         linkedin: "",
     },
     projects: [],
-    education: [],
+    education: [{from: "", to: "", degree: "", institution: "", location: ""}],
     experience: [],
-    skills: {
-        languages: [],
-        technical: [],
-        soft: [],
-    },
+    softSkills: [],
+    technicalSkills: [],
+    languages: [],
 }
 
 export default function CVBuilder() {
@@ -253,7 +253,7 @@ export default function CVBuilder() {
                     <Button variant="outline" onClick={handleExport} disabled={isExporting} className="gap-2">
                         <Download size={16}/> {isExporting ? "Exporting..." : "Export PDF"}
                     </Button>
-                    <Link href="/tailor">
+                    <Link href={`/tailor?id=${cvId}`}>
                         <Button>Tailor for Job</Button>
                     </Link>
                 </div>
@@ -285,8 +285,12 @@ export default function CVBuilder() {
                                                     updateData={(data) => updateCvData("experience", data)}/>
                                 </TabsContent>
                                 <TabsContent value="skills">
-                                    <SkillsForm data={cvData.skills}
-                                                updateData={(data) => updateCvData("skills", data)}/>
+                                    <SoftSkillsForm data={cvData.softSkills}
+                                                updateData={(data) => updateCvData("softSkills", data)}/>
+                                    <TechnicalSkillsForm data={cvData.technicalSkills}
+                                                updateData={(data) => updateCvData("technicalSkills", data)}/>
+                                    <LanguagesForm data={cvData.languages}
+                                                updateData={(data) => updateCvData("languages", data)}/>
                                 </TabsContent>
                                 <TabsContent value="projects">
                                     <ProjectsForm data={cvData.projects}

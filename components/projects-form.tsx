@@ -5,18 +5,9 @@ import {Input} from "@/components/ui/input"
 import {Textarea} from "@/components/ui/textarea"
 import {Card, CardContent} from "@/components/ui/card"
 import {Plus, Trash2} from "lucide-react"
-import {z} from "zod"
-import {zodResolver} from "@hookform/resolvers/zod"
 import {useFieldArray, useForm} from "react-hook-form"
 import {Form, FormField, FormItem, FormLabel, FormControl, FormMessage} from "@/components/ui/form";
-
-export const projectsSchema = z.array(z.object({
-    name: z.string().min(1, "Project name is required"),
-    description: z.string().min(1, "Description is required"),
-    link: z.string().url("Invalid URL format").optional(),
-}));
-
-export type ProjectList = z.infer<typeof projectsSchema>;
+import {ProjectList, projectsResolver} from "@/lib/cv"
 
 type Props = {
     data: ProjectList
@@ -25,7 +16,7 @@ type Props = {
 
 export function ProjectsForm({data, updateData}: Props) {
     const form = useForm<{ list: ProjectList }>({
-        resolver: zodResolver(projectsSchema),
+        resolver: projectsResolver,
         defaultValues: { list: data },
     });
 

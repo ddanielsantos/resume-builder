@@ -5,21 +5,9 @@ import {Input} from "@/components/ui/input"
 import {Textarea} from "@/components/ui/textarea"
 import {Card, CardContent} from "@/components/ui/card"
 import {Plus, Trash2} from "lucide-react"
-import {z} from "zod"
-import {zodResolver} from "@hookform/resolvers/zod"
 import {useFieldArray, useForm} from "react-hook-form"
 import {Form, FormField, FormItem, FormLabel, FormControl, FormMessage} from "@/components/ui/form";
-
-export const experienceSchema = z.array(z.object({
-    title: z.string().min(1, "Title is required"),
-    company: z.string().min(1, "Company is required"),
-    location: z.string().optional(),
-    from: z.string().optional(),
-    to: z.string().optional(),
-    description: z.string().optional(),
-}));
-
-export type ExperienceList = z.infer<typeof experienceSchema>;
+import {ExperienceList, experienceResolver} from "@/lib/cv"
 
 type Props = {
     data: ExperienceList
@@ -28,7 +16,7 @@ type Props = {
 
 export function ExperienceForm({data, updateData}: Props) {
     const form = useForm<{ list: ExperienceList }>({
-        resolver: zodResolver(experienceSchema),
+        resolver: experienceResolver,
         defaultValues: { list: data },
     });
 

@@ -1,4 +1,4 @@
-import {TailorCVRequest, TailorCVResponse, tailorCVResponseSchema} from "../cv"
+import {TailorCVRequest, TailorCVResponse} from "../cv"
 
 
 export async function tailorCVWithAI(params: TailorCVRequest): Promise<{ error?: string, data?: TailorCVResponse }> {
@@ -18,13 +18,7 @@ export async function tailorCVWithAI(params: TailorCVRequest): Promise<{ error?:
       return { error: errorResponse.error || "An unknown error occurred" }
     }
 
-    const json = await response.json()
-    // const { data, success, error } = tailorCVResponseSchema.safeParse(json)
-    // if (!success) {
-    //   console.error("Validation error:", error)
-    //   return { error: "Invalid response data" }
-    // }
-    return { data: json }
+    return { data: await response.json() }
   } catch (error) {
     console.error("Error tailoring CV:", error)
     // TODO: debug this later

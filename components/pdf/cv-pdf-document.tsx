@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, Font, Link } from "@react-pdf/renderer"
+import {CvData} from "@/lib/cv";
 
 // Register fonts (optional - you can use default fonts too)
 Font.register({
@@ -107,8 +108,13 @@ const styles = StyleSheet.create({
   },
 })
 
+type Props = {
+  data: CvData,
+  highlightedSkills?: string[]
+}
+
 // PDF Document Component
-export const CvPdfDocument = ({ data, highlightedSkills = [] }) => (
+export const CvPdfDocument = ({ data, highlightedSkills = [] }: Props) => (
   <Document>
     <Page size="A4" style={styles.page}>
       {/* Header */}

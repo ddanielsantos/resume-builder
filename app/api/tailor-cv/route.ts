@@ -11,30 +11,53 @@ type WithError = {
     error: string
 }
 
-export async function POST(request: Request) {
-    const extractJsonFromMarkdown = (markdown: string | null) => {
-        if (!markdown) {
-            console.error("No markdown content provided")
-            return null
-        }
-        console.log("Markdown content:", markdown)
-        const jsonString = markdown.replace(/```json/g, "").replace(/```/g, "").trim()
-        try {
-            const parsedJson = JSON.parse(jsonString)
-            console.log(parsedJson)
+const extractJsonFromMarkdown = (markdown: string | null) => {
+    if (!markdown) {
+        return {data: null, error: "No markdown content provided"}
+    }
 
-            const result = tailorCVResponseSchema.safeParse(parsedJson)
-            if (result.success) {
-                return result.data
-            } else {
-                console.error("Validation error:", result.error)
-                return null
-            }
+    markdown = markdown.trim()
+
+    if (markdown.startsWith("```json")) {
+        const jsonString = markdown.replace(/```json/g, "").replace(/```/g, "").trim()
+        let parsedJson
+
+        try {
+            parsedJson = JSON.parse(jsonString)
+            return {data: parsedJson, error: null}
         } catch (error) {
             console.error("Error parsing JSON:", error)
-            return null
+            return {data: null, error: "Failed to parse JSON from markdown"}
         }
+
+        // console.log(parsedJson)
+        //
+        // const { success, data } = tailorCVResponseSchema.safeParse(parsedJson)
+        // if (success) {
+        //     return {data, error: null}
+        // } else {
+        //     return {data: null, error: "Failed to parse JSON from markdown"}
+        // }
     }
+
+    let parsedJson
+    try {
+        parsedJson = JSON.parse(markdown)
+        return {data: parsedJson, error: null}
+    } catch (error) {
+        return {data: null, error: "Failed to parse JSON from markdown"}
+    }
+
+    // const { success, data } = tailorCVResponseSchema.safeParse(parsedJson)
+    // if (success) {
+    //     return {data, error: null}
+    // } else {
+    //     return {data: null, error: "Failed to parse JSON from markdown"}
+    // }
+}
+
+
+export async function POST(request: Request) {
 
     try {
         // Get the current user session
@@ -117,7 +140,6 @@ export async function POST(request: Request) {
     Do not invent new information, only work with what is provided in the CV.
     `
 
-        // Call OpenAI API
         const completion = await openai.chat.completions.create({
             model: process.env.AI_MODEL!,
             messages: [
@@ -135,9 +157,14 @@ export async function POST(request: Request) {
         })
 
         const responseContent = completion.choices[0].message.content
-        const parsedResponse = extractJsonFromMarkdown(responseContent || null)
+        const { data: tailoredJson } = extractJsonFromMarkdown(responseContent)
 
-        return NextResponse.json(parsedResponse)
+        if (!tailoredJson) {
+            return NextResponse.json<WithError>({error: "Failed to parse AI response"}, {status: 500})
+        }
+        console.log(tailoredJson)
+
+        return NextResponse.json(tailoredJson, {status: 200})
     } catch (error) {
         console.error("Error in tailor-cv API route:", error)
         return NextResponse.json<WithError>({error: "Failed to tailor CV. Please try again."}, {status: 500})

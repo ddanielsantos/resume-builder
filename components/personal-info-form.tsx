@@ -3,24 +3,10 @@
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {Textarea} from "@/components/ui/textarea"
-import {z} from "zod"
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
 import {useForm} from "react-hook-form";
-import {zodResolver} from "@hookform/resolvers/zod";
+import {PersonalInfo, personalInfoResolver} from "@/lib/cv";
 
-export type PersonalInfo = z.infer<typeof personalInfoSchema>
-
-export const personalInfoSchema = z.object({
-    name: z.string().min(1, "Name is required"),
-    title: z.string().min(1, "Title is required"),
-    email: z.string().email("Invalid email address"),
-    phone: z.string().optional(),
-    location: z.string().optional(),
-    website: z.string().url("Invalid URL").optional(),
-    github: z.string().url("Invalid URL").optional(),
-    linkedin: z.string().url("Invalid URL").optional(),
-    summary: z.string().optional(),
-})
 
 type Props = {
     data: PersonalInfo
@@ -29,7 +15,7 @@ type Props = {
 
 export function PersonalInfoForm({data, updateData}: Props) {
     const form = useForm<PersonalInfo>({
-        resolver: zodResolver(personalInfoSchema),
+        resolver: personalInfoResolver,
         defaultValues: data,
     });
     const onSubmit = (data: PersonalInfo) => {
