@@ -1,7 +1,6 @@
 "use client"
 
 import {Button} from "@/components/ui/button"
-import {Plus, X} from "lucide-react"
 import {useFieldArray, useForm} from "react-hook-form"
 import {Form, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form"
 import { InputItem } from "@/components/InputItem"
