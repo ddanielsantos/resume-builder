@@ -30,6 +30,7 @@ const initialCvData: CvData = {
         website: "",
         github: "",
         linkedin: "",
+        location: "",
     },
     projects: [],
     education: [{from: "", to: "", degree: "", institution: "", location: ""}],
